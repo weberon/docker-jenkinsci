@@ -21,6 +21,18 @@ RUN apt-get update \
     tini \
     unzip \
   && rm -rf /var/lib/apt/lists/*
+RUN apt install -y --no-install-recommends gnupg curl ca-certificates apt-transport-https \
+    apt update -y && \
+    apt install -y mercurial xvfb git python3 openssh-client ant wget vim zip && \
+    apt install -y openjdk-8-jdk python3-dev python3-pip net-tools && \
+    apt install -y software-properties-common && \
+    apt update -y
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+    apt install -y python3.7
+RUN sh -c "wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -"
+RUN sh -c "echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' | tee /etc/apt/sources.list.d/google-chrome.list"
+RUN apt update -y && \
+    apt install google-chrome-stable -y
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh -o /tmp/script.deb.sh \
   && bash /tmp/script.deb.sh \
@@ -99,9 +111,9 @@ EXPOSE ${agent_port}
 
 ENV COPY_REFERENCE_FILE_LOG $JENKINS_HOME/copy_reference_file.log
 
-ENV JAVA_HOME=/opt/java/openjdk
-ENV PATH "${JAVA_HOME}/bin:${PATH}"
-COPY --from=jre-build /javaruntime $JAVA_HOME
+#ENV JAVA_HOME=/opt/java/openjdk
+#ENV PATH "${JAVA_HOME}/bin:${PATH}"
+#COPY --from=jre-build /javaruntime $JAVA_HOME
 
 USER ${user}
 
@@ -109,6 +121,11 @@ COPY jenkins-support /usr/local/bin/jenkins-support
 COPY jenkins.sh /usr/local/bin/jenkins.sh
 COPY tini-shim.sh /sbin/tini
 COPY jenkins-plugin-cli.sh /bin/jenkins-plugin-cli
+
+RUN curl -sL https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh -o install_nvm.sh && \
+    bash install_nvm.sh && \
+    source .bashrc && \
+    nvm --version 
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/jenkins.sh"]
 
